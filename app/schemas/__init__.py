@@ -1,1 +1,5 @@
-from .asset import AssetCreate, AssetUpdate, AssetResponse, AssetRelationshipBase, AssetRelationshipResponse
+from .asset import (
+    AssetCreate, AssetUpdate, AssetResponse, 
+    AssetRelationshipBase, AssetRelationshipResponse,
+    BulkImportResponse
+)
