@@ -10,7 +10,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="DarkAtlas Asset Management API",
+    title=settings.PROJECT_NAME,
     description=(
         "The asset inventory module of the DarkAtlas Attack Surface Monitoring platform. "
         "Tracks domains, subdomains, IPs, services, certificates, and technologies. "

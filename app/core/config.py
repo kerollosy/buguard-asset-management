@@ -9,7 +9,10 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    PROJECT_NAME: str = "DarkAtlas Asset Management API"
     ENVIRONMENT: str = "development"
+
+    DATABASE_URL: str
 
 
 settings = Settings()
