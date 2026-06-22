@@ -1,5 +1,4 @@
 import logging
-import uvicorn
 from fastapi import FastAPI
 
 from app.core.config import settings
@@ -28,7 +27,3 @@ async def root():
 @app.get("/health", tags=["Health"], summary="Health check")
 async def health():
     return {"status": "ok", "environment": settings.ENVIRONMENT}
-
-
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
