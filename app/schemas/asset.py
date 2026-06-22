@@ -2,7 +2,7 @@ from uuid import UUID
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 from app.models.asset import AssetType, AssetStatus
 
 
@@ -13,7 +13,11 @@ class AssetBase(BaseModel):
     source: str
     tags: list[str] = Field(default_factory=list)
     # Alias matches the DB column name, but maps to the SQLAlchemy property name
-    asset_metadata: dict[str, Any] = Field(default_factory=dict, alias="metadata")
+    asset_metadata: dict[str, Any] = Field(
+        default_factory=dict, 
+        validation_alias=AliasChoices("asset_metadata", "metadata"),
+        serialization_alias="metadata"
+    )
 
     @field_validator("value")
     @classmethod
@@ -35,7 +39,11 @@ class AssetUpdate(BaseModel):
     """Schema for updating an existing asset."""
     status: AssetStatus | None = None
     tags: list[str] | None = None
-    asset_metadata: dict[str, Any] | None = Field(None, alias="metadata")
+    asset_metadata: dict[str, Any] | None = Field(
+        None,
+        validation_alias=AliasChoices("asset_metadata", "metadata"),
+        serialization_alias="metadata",
+    )
 
     @field_validator("tags")
     @classmethod
@@ -69,7 +77,7 @@ class AssetResponse(AssetBase):
         except ValueError:
             return None
 
-    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AssetRelationshipBase(BaseModel):
