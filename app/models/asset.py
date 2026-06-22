@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from sqlalchemy import (
     DateTime,
     ForeignKey,
-    Index,
     String,
     Enum,
     Text,
@@ -46,13 +45,11 @@ class AssetRelationship(Base):
         UUID(as_uuid=True),
         ForeignKey("assets.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
     target_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("assets.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
     # E.g., "resolves_to", "covers", "runs_on"
     relationship_type: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -95,9 +92,9 @@ class Asset(Base):
     # but NOT used as the dedup key (type + value is canonical).
     external_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
-    type: Mapped[AssetType] = mapped_column(Enum(AssetType), nullable=False, index=True)
+    type: Mapped[AssetType] = mapped_column(Enum(AssetType), nullable=False)
     value: Mapped[str] = mapped_column(Text, nullable=False)
-    status: Mapped[AssetStatus] = mapped_column(Enum(AssetStatus), nullable=False, default=AssetStatus.active, index=True)
+    status: Mapped[AssetStatus] = mapped_column(Enum(AssetStatus), nullable=False, default=AssetStatus.active)
     source: Mapped[str] = mapped_column(String(20), nullable=False, default="manual")
 
     # Timestamps
@@ -134,15 +131,6 @@ class Asset(Base):
     __table_args__ = (
         # Deduplication key: (type, value) must be globally unique
         UniqueConstraint("type", "value", name="uq_asset_type_value"),
-        # GIN index on tags for fast array overlap queries
-        Index("ix_assets_tags", "tags", postgresql_using="gin"),
-        # Trigram index on value for fast substring / ILIKE searches
-        Index(
-            "ix_assets_value_trgm",
-            "value",
-            postgresql_using="gin",
-            postgresql_ops={"value": "gin_trgm_ops"},
-        ),
     )
 
     def __repr__(self) -> str:
