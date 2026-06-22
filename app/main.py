@@ -1,5 +1,6 @@
 import logging
 from fastapi import FastAPI
+from app.router import assets
 
 from app.core.config import settings
 
@@ -27,3 +28,5 @@ async def root():
 @app.get("/health", tags=["Health"], summary="Health check")
 async def health():
     return {"status": "ok", "environment": settings.ENVIRONMENT}
+
+app.include_router(assets.router, prefix="/assets", tags=["Assets"])
