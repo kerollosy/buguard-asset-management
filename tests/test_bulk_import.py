@@ -59,7 +59,7 @@ async def test_idempotent_reimport_no_duplicates(async_client: AsyncClient):
 
     # Verify count in the DB
     r = await async_client.get("/assets/")
-    assert len(r.json()) == 3
+    assert r.json()["total"] == 3
 
 
 @pytest.mark.asyncio
@@ -92,7 +92,7 @@ async def test_metadata_merge_incoming_wins(async_client: AsyncClient):
     await async_client.post("/assets/bulk", json=updated)
 
     r = await async_client.get("/assets/", params={"value_contains": "merge-test.com"})
-    asset = r.json()[0]
+    asset = r.json()["items"][0]
     meta = asset["metadata"]
 
     # Incoming overwrites conflicting keys
@@ -112,7 +112,7 @@ async def test_tag_union_on_reimport(async_client: AsyncClient):
     await async_client.post("/assets/bulk", json=second)
 
     r = await async_client.get("/assets/", params={"value_contains": "tags.com"})
-    tags = r.json()[0]["tags"]
+    tags = r.json()["items"][0]["tags"]
     assert "root" in tags
     assert "prod" in tags
 
