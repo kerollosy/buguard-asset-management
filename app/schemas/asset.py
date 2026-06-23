@@ -81,13 +81,24 @@ class AssetResponse(AssetBase):
 
 
 class AssetRelationshipBase(BaseModel):
-    source_asset_id: UUID
-    target_asset_id: UUID
+    source_id: UUID
+    target_id: UUID
     relationship_type: str
 
 
 class AssetRelationshipResponse(AssetRelationshipBase):
+    """
+    Serializes the edge (the relationship link). 
+    Critically, it does NOT include the nested Asset objects to prevent 
+    infinite recursion during Pydantic serialization (Asset -> Rel -> Asset...).
+    """
     model_config = ConfigDict(from_attributes=True)
+
+
+class AssetGraphResponse(AssetResponse):
+    """Schema for returning an asset with its immediate relationship graph."""
+    outgoing: list[AssetRelationshipResponse] = Field(default_factory=list)
+    incoming: list[AssetRelationshipResponse] = Field(default_factory=list)
 
 
 class BulkImportResponse(BaseModel):
@@ -95,9 +106,3 @@ class BulkImportResponse(BaseModel):
     processed_count: int
     failed_count: int
     errors: list[dict[str, Any]] = Field(default_factory=list)
-
-
-class AssetGraphResponse(AssetResponse):
-    """Schema for returning an asset with its immediate relationship graph."""
-    outgoing_relationships: list[AssetRelationshipResponse] = Field(default_factory=list)
-    incoming_relationships: list[AssetRelationshipResponse] = Field(default_factory=list)
