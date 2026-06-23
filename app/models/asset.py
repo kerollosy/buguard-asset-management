@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from sqlalchemy import (
     DateTime,
     ForeignKey,
+    Index,
     String,
     Enum,
     Text,
@@ -131,6 +132,12 @@ class Asset(Base):
     __table_args__ = (
         # Deduplication key: (type, value) must be globally unique
         UniqueConstraint("type", "value", name="uq_asset_type_value"),
+
+        # GIN index on tags for fast array overlap queries
+        Index("ix_assets_tags", "tags", postgresql_using="gin"),
+        
+        Index("ix_asset_status", "status"),
+        Index("ix_asset_last_seen", "last_seen"),
     )
 
     def __repr__(self) -> str:
