@@ -85,11 +85,19 @@ class AssetRelationshipBase(BaseModel):
     target_asset_id: UUID
     relationship_type: str
 
+
 class AssetRelationshipResponse(AssetRelationshipBase):
     model_config = ConfigDict(from_attributes=True)
+
 
 class BulkImportResponse(BaseModel):
     """Schema for reporting the results of a bulk import operation."""
     processed_count: int
     failed_count: int
     errors: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class AssetGraphResponse(AssetResponse):
+    """Schema for returning an asset with its immediate relationship graph."""
+    outgoing_relationships: list[AssetRelationshipResponse] = Field(default_factory=list)
+    incoming_relationships: list[AssetRelationshipResponse] = Field(default_factory=list)
