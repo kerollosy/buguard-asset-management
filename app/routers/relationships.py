@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.schemas.relationships import AssetRelationshipBase, AssetRelationshipResponse, AssetGraphResponse
+from app.schemas.relationships import AssetRelationshipBase, AssetRelationshipResponse
 from app.services import relationship_service
 
 
@@ -47,15 +47,3 @@ async def remove_asset_relationship(
     deleted = await relationship_service.delete_relationship(db, rel_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Relationship {rel_id} not found")
-
-
-@router.get("/{asset_id}/graph", response_model=AssetGraphResponse)
-async def get_asset_graph(
-    asset_id: UUID,
-    db: AsyncSession = Depends(get_db)
-):
-    """Get a specific asset along with its incoming and outgoing relationships."""
-    asset = await relationship_service.get_asset_graph(db, asset_id)
-    if not asset:
-        raise HTTPException(status_code=404, detail="Asset not found")
-    return asset

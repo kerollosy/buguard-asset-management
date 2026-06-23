@@ -4,6 +4,7 @@ from typing import Any
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 from app.models.asset import AssetType, AssetStatus
+from app.schemas.relationships import AssetRelationshipResponse
 
 
 class AssetBase(BaseModel):
@@ -82,6 +83,12 @@ class AssetResponse(AssetBase):
             return None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AssetGraphResponse(AssetResponse):
+    """Schema for returning an asset with its immediate relationship graph."""
+    outgoing: list[AssetRelationshipResponse] = Field(default_factory=list)
+    incoming: list[AssetRelationshipResponse] = Field(default_factory=list)
 
 
 class AddTagsRequest(BaseModel):

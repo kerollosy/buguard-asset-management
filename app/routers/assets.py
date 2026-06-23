@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 from app.core.database import get_db
-from app.schemas.asset import AddTagsRequest, AssetCreate, AssetResponse, AssetUpdate
+from app.schemas.asset import AddTagsRequest, AssetCreate, AssetGraphResponse, AssetResponse, AssetUpdate
 from app.schemas.pagination import PaginatedResponse
 from app.models.asset import AssetType, AssetStatus
 from app.services import asset_service
@@ -112,4 +112,16 @@ async def add_tags(asset_id: UUID, body: AddTagsRequest, db: AsyncSession = Depe
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Asset {asset_id} not found.")
 
     asset = await asset_service.add_tags(db, asset, body.tags)
+    return asset
+
+
+@router.get("/{asset_id}/graph", response_model=AssetGraphResponse)
+async def get_asset_graph(
+    asset_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get a specific asset along with its incoming and outgoing relationships."""
+    asset = await asset_service.get(db, asset_id)
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
     return asset

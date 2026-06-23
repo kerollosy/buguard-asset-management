@@ -47,7 +47,7 @@ async def get_multi(
         stmt = stmt.where(Asset.status == status)
     if tag:
         # PostgreSQL specific array operation
-        stmt = stmt.where(Asset.tags.any(tag))
+        stmt = stmt.where(Asset.tags.contains([tag]))
     if value_contains:
         stmt = stmt.where(Asset.value.icontains(value_contains))
     if type:
