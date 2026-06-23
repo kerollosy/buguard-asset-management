@@ -6,11 +6,9 @@ from app.schemas.asset import AssetResponse
 
 
 class AssetRelationshipBase(BaseModel):
-    id: UUID
     source_id: UUID
     target_id: UUID
     relationship_type: str
-    created_at: datetime
 
 
 class AssetRelationshipResponse(AssetRelationshipBase):
@@ -19,6 +17,8 @@ class AssetRelationshipResponse(AssetRelationshipBase):
     Critically, it does NOT include the nested Asset objects to prevent 
     infinite recursion during Pydantic serialization (Asset -> Rel -> Asset...).
     """
+    id: UUID
+    created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
 
