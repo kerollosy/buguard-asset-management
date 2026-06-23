@@ -67,6 +67,7 @@ async def get_multi(
 async def create(db: AsyncSession, *, obj_in: AssetCreate) -> Asset:
     """Create a new asset."""
     db_obj = Asset(
+        external_id=obj_in.external_id,
         type=obj_in.type,
         value=obj_in.value,
         status=obj_in.status,

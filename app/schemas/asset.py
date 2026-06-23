@@ -32,7 +32,11 @@ class AssetBase(BaseModel):
 
 class AssetCreate(AssetBase):
     """Schema for ingesting a new asset."""
-    pass
+    external_id: str | None = Field(
+        default=None,
+        # Looks for "id" or "external_id" in the incoming JSON payload
+        validation_alias=AliasChoices("id", "external_id")
+    )
 
 
 class AssetUpdate(BaseModel):
