@@ -1,8 +1,10 @@
 from uuid import UUID
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select, delete
 from sqlalchemy.exc import IntegrityError
+
 from app.models.asset import Asset, AssetRelationship
 from app.schemas.relationships import AssetRelationshipBase
 
@@ -29,6 +31,33 @@ async def create_relationship(db: AsyncSession, *, obj_in: AssetRelationshipBase
         if "foreign key constraint" in err_msg or "insert or update on table" in err_msg:
             raise ValueError("One or both associated assets do not exist.")
         raise ValueError("This relationship already exists.")
+
+
+async def list_relationships(
+    db: AsyncSession,
+    source_id: UUID | None = None,
+    target_id: UUID | None = None,
+) -> list[AssetRelationship]:
+    query = select(AssetRelationship)
+    if source_id:
+        query = query.where(AssetRelationship.source_id == source_id)
+    if target_id:
+        query = query.where(AssetRelationship.target_id == target_id)
+    result = await db.execute(query)
+    return list(result.scalars().all())
+
+
+async def delete_relationship(
+    db: AsyncSession, rel_id: UUID
+) -> AssetRelationship | None:
+    result = await db.execute(
+        select(AssetRelationship).where(AssetRelationship.id == rel_id)
+    )
+    rel = result.scalar_one_or_none()
+    if rel:
+        await db.delete(rel)
+        await db.commit()
+    return rel
 
 
 async def get_asset_graph(db: AsyncSession, asset_id: UUID) -> Asset | None:

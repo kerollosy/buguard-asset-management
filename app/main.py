@@ -29,6 +29,6 @@ async def root():
 async def health():
     return {"status": "ok", "environment": settings.ENVIRONMENT}
 
+app.include_router(relationships.router, prefix="/assets", tags=["relationships"])
 app.include_router(assets.router, prefix="/assets", tags=["Assets"])
 app.include_router(bulk.router, prefix="/assets", tags=["bulk import"])
-app.include_router(relationships.router, prefix="/assets", tags=["relationships"])
