@@ -65,23 +65,6 @@ class AssetResponse(AssetBase):
     first_seen: datetime
     last_seen: datetime
 
-    # Computed convenience field for certificate assets
-    @property
-    def is_expired(self) -> bool | None:
-        if self.type != AssetType.certificate:
-            return None
-        expires = self.asset_metadata.get("expires")
-        if not expires:
-            return None
-        from datetime import timezone
-        try:
-            exp = datetime.fromisoformat(str(expires))
-            if exp.tzinfo is None:
-                exp = exp.replace(tzinfo=timezone.utc)
-            return exp < datetime.now(timezone.utc)
-        except ValueError:
-            return None
-
     model_config = ConfigDict(from_attributes=True)
 
 
