@@ -20,6 +20,7 @@ async def override_get_db():
 # Inject the override
 app.dependency_overrides[get_db] = override_get_db
 
+
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def setup_database():
     """Builds the database tables before the test suite runs, and drops them after."""
@@ -30,7 +31,20 @@ async def setup_database():
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
-@pytest_asyncio.fixture
+
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def clear_db_data(setup_database):
+    """
+    Clears all data from all tables before every individual test.
+    Requires 'setup_database' to ensure tables actually exist first.
+    """
+    async with test_engine.begin() as conn:
+        # Loop through tables in reverse topological order to respect foreign keys
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(table.delete())
+
+
+@pytest_asyncio.fixture(scope="session")
 async def async_client():
     """Provides an asynchronous HTTPX client routing to our FastAPI app."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
