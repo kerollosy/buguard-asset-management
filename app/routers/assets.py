@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.database import get_db
 from app.schemas.asset import AddTagsRequest, AssetCreate, AssetGraphResponse, AssetResponse, AssetUpdate
-from app.schemas.pagination import PaginatedResponse
+from app.schemas.pagination import AssetSortField, PaginatedResponse, SortOrder
 from app.models.asset import AssetType, AssetStatus
 from app.services import asset_service
 
@@ -36,8 +36,8 @@ async def list_assets(
     status: AssetStatus | None = None,
     tag: str | None = None,
     value_contains: str | None = None,
-    sort_by: str = Query("last_seen", pattern="^(first_seen|last_seen|type|value|status)$"),
-    sort_order: str = Query("desc", pattern="^(asc|desc)$"),
+    sort_by: AssetSortField = Query(AssetSortField.LAST_SEEN),
+    sort_order: SortOrder = Query(SortOrder.DESC),
     db: AsyncSession = Depends(get_db)
 ):
     """Retrieve multiple assets with filtering, sorting, and pagination."""

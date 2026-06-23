@@ -1,4 +1,6 @@
 from typing import TypeVar, Generic
+from enum import Enum
+
 from pydantic import BaseModel
 
 
@@ -11,3 +13,16 @@ class PaginatedResponse(BaseModel, Generic[T]):
     page: int
     size: int
     items: list[T]
+
+
+class SortOrder(str, Enum):
+    ASC = "asc"
+    DESC = "desc"
+
+
+class AssetSortField(str, Enum):
+    FIRST_SEEN = "first_seen"
+    LAST_SEEN = "last_seen"
+    TYPE = "type"
+    VALUE = "value"
+    STATUS = "status"
