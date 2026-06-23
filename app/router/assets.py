@@ -36,8 +36,8 @@ async def list_assets(
     status: AssetStatus | None = None,
     tag: str | None = None,
     value_contains: str | None = None,
-    sort_by: str = Query("last_seen", regex="^(first_seen|last_seen|type|value|status)$"),
-    sort_order: str = Query("desc", regex="^(asc|desc)$"),
+    sort_by: str = Query("last_seen", pattern="^(first_seen|last_seen|type|value|status)$"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     db: AsyncSession = Depends(get_db)
 ):
     """Retrieve multiple assets with filtering, sorting, and pagination."""
