@@ -32,11 +32,10 @@ async def create_asset(
 async def list_assets(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
-    asset_type: AssetType | None = None,
+    asset_type: AssetType | None = Query(None, alias="type"),
     status: AssetStatus | None = None,
     tag: str | None = None,
     value_contains: str | None = None,
-    type: AssetType | None = None,
     sort_by: str = Query("last_seen", pattern="^(first_seen|last_seen|type|value|status)$"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     db: AsyncSession = Depends(get_db)
@@ -50,7 +49,6 @@ async def list_assets(
         status=status,
         tag=tag,
         value_contains=value_contains,
-        type=type,
         sort_by=sort_by,
         sort_order=sort_order
     )

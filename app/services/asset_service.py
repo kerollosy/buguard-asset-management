@@ -30,7 +30,6 @@ async def get_multi(
     status: AssetStatus | None = None,
     tag: str | None = None,
     value_contains: str | None = None,
-    type: AssetType | None = None,
     sort_by: str = "last_seen",
     sort_order: str = "desc"
 ) -> tuple[int, list[Asset]]:
@@ -50,8 +49,6 @@ async def get_multi(
         stmt = stmt.where(Asset.tags.contains([tag]))
     if value_contains:
         stmt = stmt.where(Asset.value.icontains(value_contains))
-    if type:
-        stmt = stmt.where(Asset.type == type)
 
     # Compute total count before pagination
     count_stmt = select(func.count()).select_from(stmt.subquery())
