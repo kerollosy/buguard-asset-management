@@ -58,7 +58,7 @@ async def test_idempotent_reimport_no_duplicates(async_client: AsyncClient):
     assert body["errors"] == []
 
     # Verify count in the DB
-    r = await async_client.get("/assets")
+    r = await async_client.get("/assets/")
     assert len(r.json()) == 3
 
 
@@ -91,7 +91,7 @@ async def test_metadata_merge_incoming_wins(async_client: AsyncClient):
     await async_client.post("/assets/bulk", json=initial)
     await async_client.post("/assets/bulk", json=updated)
 
-    r = await async_client.get("/assets", params={"value_contains": "merge-test.com"})
+    r = await async_client.get("/assets/", params={"value_contains": "merge-test.com"})
     asset = r.json()[0]
     meta = asset["metadata"]
 
@@ -111,7 +111,7 @@ async def test_tag_union_on_reimport(async_client: AsyncClient):
     await async_client.post("/assets/bulk", json=initial)
     await async_client.post("/assets/bulk", json=second)
 
-    r = await async_client.get("/assets", params={"value_contains": "tags.com"})
+    r = await async_client.get("/assets/", params={"value_contains": "tags.com"})
     tags = r.json()[0]["tags"]
     assert "root" in tags
     assert "prod" in tags
