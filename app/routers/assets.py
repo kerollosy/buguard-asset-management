@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 from app.core.database import get_db
-from app.schemas.asset import AssetCreate, AssetResponse, AssetUpdate
+from app.schemas.asset import AddTagsRequest, AssetCreate, AssetResponse, AssetUpdate
 from app.schemas.pagination import PaginatedResponse
 from app.models.asset import AssetType, AssetStatus
 from app.services import asset_service
@@ -13,12 +13,12 @@ router = APIRouter()
 
 @router.post("/", response_model=AssetResponse, status_code=status.HTTP_201_CREATED)
 async def create_asset(
-    asset_in: AssetCreate,
+    payload: AssetCreate,
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new asset."""
     try:
-        asset = await asset_service.create(db=db, obj_in=asset_in)
+        asset = await asset_service.create(db, payload)
         return asset
     except IntegrityError:
         await db.rollback()
@@ -68,22 +68,22 @@ async def get_asset(
     """Get a specific asset by ID."""
     asset = await asset_service.get(db, asset_id)
     if not asset:
-        raise HTTPException(status_code=404, detail="Asset not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Asset {asset_id} not found")
     return asset
 
 
-@router.put("/{asset_id}", response_model=AssetResponse)
+@router.patch("/{asset_id}", response_model=AssetResponse)
 async def update_asset(
     asset_id: UUID,
-    asset_in: AssetUpdate,
+    payload: AssetUpdate,
     db: AsyncSession = Depends(get_db)
 ):
     """Update a specific asset."""
     asset = await asset_service.get(db, asset_id)
     if not asset:
-        raise HTTPException(status_code=404, detail="Asset not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Asset {asset_id} not found")
     
-    asset = await asset_service.update(db=db, db_obj=asset, obj_in=asset_in)
+    asset = await asset_service.update(db, asset, payload)
     return asset
 
 
@@ -93,7 +93,21 @@ async def delete_asset(
     db: AsyncSession = Depends(get_db)
 ):
     """Delete a specific asset."""
-    asset = await asset_service.remove(db, asset_id=asset_id)
+    asset = await asset_service.delete(db, asset_id)
     if not asset:
-        raise HTTPException(status_code=404, detail="Asset not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Asset {asset_id} not found")
     return None
+
+
+@router.post(
+    "/{asset_id}/tags",
+    response_model=AssetResponse,
+    summary="Add tags to an asset (union merge)",
+)
+async def add_tags(asset_id: UUID, body: AddTagsRequest, db: AsyncSession = Depends(get_db)):
+    asset = await asset_service.get(db, asset_id)
+    if not asset:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Asset {asset_id} not found.")
+
+    asset = await asset_service.add_tags(db, asset, body.tags)
+    return asset

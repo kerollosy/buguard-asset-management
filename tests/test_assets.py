@@ -40,7 +40,7 @@ async def test_get_asset_not_found(async_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_update_asset(async_client: AsyncClient):
     created = (await async_client.post("/assets/", json=payload)).json()
-    r = await async_client.put(
+    r = await async_client.patch(
         f"/assets/{created['id']}",
         json={"status": "stale", "tags": ["prod", "updated"]},
     )

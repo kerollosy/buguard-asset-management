@@ -1,23 +1,30 @@
 from uuid import UUID
 from datetime import datetime, timezone
 
-from sqlalchemy import select, asc, desc, func
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, asc, desc, func, delete as delete_stmt
+from sqlalchemy.ext.asyncio import AsyncSession 
+from sqlalchemy.orm import selectinload
 
-from app.models.asset import Asset, AssetType, AssetStatus
+from app.models.asset import Asset, AssetRelationship, AssetType, AssetStatus
 from app.schemas.asset import AssetCreate, AssetUpdate
 
 
 async def get(db: AsyncSession, asset_id: UUID) -> Asset | None:
-    """Fetch a single asset by ID."""
-    result = await db.execute(select(Asset).where(Asset.id == asset_id))
-    return result.scalars().first()
+    result = await db.execute(
+        select(Asset)
+        .where(Asset.id == asset_id)
+        .options(
+            selectinload(Asset.outgoing).selectinload(AssetRelationship.target_asset),
+            selectinload(Asset.incoming).selectinload(AssetRelationship.source_asset),
+        )
+    )
+    return result.scalar_one_or_none()
 
 
 async def get_multi(
     db: AsyncSession,
     *,
-    page: int = 0,
+    page: int = 1,
     size: int = 50,
     asset_type: AssetType | None = None,
     status: AssetStatus | None = None,
@@ -48,11 +55,15 @@ async def get_multi(
     total_count = (await db.execute(count_stmt)).scalar_one()
 
     # Apply Sorting
-    sort_column = getattr(Asset, sort_by, Asset.last_seen)
-    if sort_order.lower() == "asc":
-        stmt = stmt.order_by(asc(sort_column))
-    else:
-        stmt = stmt.order_by(desc(sort_column))
+    ALLOWED_SORT_COLUMNS = {
+        "last_seen": Asset.last_seen,
+        "first_seen": Asset.first_seen,
+        "value": Asset.value,
+        "type": Asset.type,
+        "status": Asset.status,
+    }
+    sort_column = ALLOWED_SORT_COLUMNS.get(sort_by, Asset.last_seen)
+    stmt = stmt.order_by(asc(sort_column) if sort_order.lower() == "asc" else desc(sort_column))
 
     # Apply Pagination
     offset = (page - 1) * size
@@ -64,50 +75,57 @@ async def get_multi(
     return total_count, assets
 
 
-async def create(db: AsyncSession, *, obj_in: AssetCreate) -> Asset:
+async def create(db: AsyncSession, payload: AssetCreate) -> Asset:
     """Create a new asset."""
-    db_obj = Asset(
-        external_id=obj_in.external_id,
-        type=obj_in.type,
-        value=obj_in.value,
-        status=obj_in.status,
-        source=obj_in.source,
-        tags=obj_in.tags,
-        asset_metadata=obj_in.asset_metadata,
+    asset = Asset(
+        external_id=payload.external_id,
+        type=payload.type,
+        value=payload.value,
+        status=payload.status,
+        source=payload.source,
+        tags=payload.tags,
+        asset_metadata=payload.asset_metadata,
         first_seen=datetime.now(timezone.utc),
         last_seen=datetime.now(timezone.utc)
     )
-    db.add(db_obj)
+    db.add(asset)
     await db.commit()
-    await db.refresh(db_obj)
-    return db_obj
+    await db.refresh(asset)
+    return asset
 
 
-async def update(db: AsyncSession, *, db_obj: Asset, obj_in: AssetUpdate) -> Asset:
+async def update(db: AsyncSession, asset: Asset, payload: AssetUpdate) -> Asset:
     """Update an existing asset."""
-    update_data = obj_in.model_dump(exclude_unset=True)
-    
-    # Map Pydantic 'metadata' alias to DB 'asset_metadata'
-    if "metadata" in update_data:
-        update_data["asset_metadata"] = update_data.pop("metadata")
+    update_data = payload.model_dump(exclude_unset=True)
 
     for field, value in update_data.items():
-        setattr(db_obj, field, value)
+        setattr(asset, field, value)
 
     # Always update last_seen on modification
-    db_obj.last_seen = datetime.now(timezone.utc)
+    asset.last_seen = datetime.now(timezone.utc)
     
-    db.add(db_obj)
     await db.commit()
-    await db.refresh(db_obj)
-    return db_obj
+    await db.refresh(asset)
+    return asset
 
 
-async def remove(db: AsyncSession, *, asset_id: UUID) -> Asset | None:
+async def delete(db: AsyncSession, asset_id: UUID) -> Asset | None:
     """Delete an asset by ID."""
-    obj = await get(db, asset_id)
-    if not obj:
-        return None
-    await db.delete(obj)
+    stmt = delete_stmt(Asset).where(Asset.id == asset_id).returning(Asset)
+    
+    result = await db.execute(stmt)
     await db.commit()
-    return obj
+    
+    return result.scalar_one_or_none()
+
+
+async def add_tags(
+    db: AsyncSession, asset: Asset, new_tags: list[str]
+) -> Asset:
+    """Union-merge new_tags into the asset's existing tag list."""
+    merged = sorted(set(asset.tags or []) | {t.strip().lower() for t in new_tags if t.strip()})
+    asset.tags = merged
+    asset.last_seen = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(asset)
+    return asset

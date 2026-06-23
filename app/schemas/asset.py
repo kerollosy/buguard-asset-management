@@ -82,3 +82,7 @@ class AssetResponse(AssetBase):
             return None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AddTagsRequest(BaseModel):
+    tags: list[str]
