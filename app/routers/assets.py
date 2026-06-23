@@ -36,6 +36,7 @@ async def list_assets(
     status: AssetStatus | None = None,
     tag: str | None = None,
     value_contains: str | None = None,
+    type: AssetType | None = None,
     sort_by: str = Query("last_seen", pattern="^(first_seen|last_seen|type|value|status)$"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     db: AsyncSession = Depends(get_db)
@@ -49,6 +50,7 @@ async def list_assets(
         status=status,
         tag=tag,
         value_contains=value_contains,
+        type=type,
         sort_by=sort_by,
         sort_order=sort_order
     )
