@@ -1,6 +1,6 @@
 from uuid import UUID
 from datetime import datetime
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 from app.models.asset import AssetType, AssetStatus
@@ -78,40 +78,3 @@ class AssetResponse(AssetBase):
             return None
 
     model_config = ConfigDict(from_attributes=True)
-
-
-class AssetRelationshipBase(BaseModel):
-    source_id: UUID
-    target_id: UUID
-    relationship_type: str
-
-
-class AssetRelationshipResponse(AssetRelationshipBase):
-    """
-    Serializes the edge (the relationship link). 
-    Critically, it does NOT include the nested Asset objects to prevent 
-    infinite recursion during Pydantic serialization (Asset -> Rel -> Asset...).
-    """
-    model_config = ConfigDict(from_attributes=True)
-
-
-class AssetGraphResponse(AssetResponse):
-    """Schema for returning an asset with its immediate relationship graph."""
-    outgoing: list[AssetRelationshipResponse] = Field(default_factory=list)
-    incoming: list[AssetRelationshipResponse] = Field(default_factory=list)
-
-
-class BulkImportResponse(BaseModel):
-    """Schema for reporting the results of a bulk import operation."""
-    processed_count: int
-    failed_count: int
-    errors: list[dict[str, Any]] = Field(default_factory=list)
-
-T = TypeVar('T')
-
-class PaginatedResponse(BaseModel, Generic[T]):
-    """Generic wrapper for paginated list endpoints."""
-    total: int
-    page: int
-    size: int
-    items: list[T]
