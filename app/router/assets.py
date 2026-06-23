@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 from app.core.database import get_db
-from app.schemas.asset import AssetCreate, AssetGraphResponse, AssetRelationshipBase, AssetRelationshipResponse, AssetUpdate, AssetResponse, BulkImportResponse
+from app.schemas.asset import AssetCreate, AssetGraphResponse, AssetRelationshipBase, AssetRelationshipResponse, AssetUpdate, AssetResponse, BulkImportResponse, PaginatedResponse
 from app.models.asset import AssetType, AssetStatus
 from app.services import asset_service as crud_asset
 
@@ -28,10 +28,10 @@ async def create_asset(
             detail="An asset with this type and value already exists."
         )
 
-@router.get("/", response_model=list[AssetResponse])
+@router.get("/", response_model=PaginatedResponse[AssetResponse])
 async def list_assets(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=1000),
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
     asset_type: AssetType | None = None,
     status: AssetStatus | None = None,
     tag: str | None = None,
@@ -41,10 +41,10 @@ async def list_assets(
     db: AsyncSession = Depends(get_db)
 ):
     """Retrieve multiple assets with filtering, sorting, and pagination."""
-    assets = await crud_asset.get_multi(
+    total, assets = await crud_asset.get_multi(
         db,
-        skip=skip,
-        limit=limit,
+        page=page,
+        size=size,
         asset_type=asset_type,
         status=status,
         tag=tag,
@@ -52,7 +52,12 @@ async def list_assets(
         sort_by=sort_by,
         sort_order=sort_order
     )
-    return assets
+    return {
+        "total": total,
+        "page": page,
+        "size": size,
+        "items": assets
+    }
 
 @router.get("/{asset_id}", response_model=AssetResponse)
 async def get_asset(

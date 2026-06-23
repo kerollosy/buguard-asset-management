@@ -1,6 +1,6 @@
 from uuid import UUID
 from datetime import datetime
-from typing import Any
+from typing import Any, Generic, TypeVar
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 from app.models.asset import AssetType, AssetStatus
@@ -106,3 +106,12 @@ class BulkImportResponse(BaseModel):
     processed_count: int
     failed_count: int
     errors: list[dict[str, Any]] = Field(default_factory=list)
+
+T = TypeVar('T')
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    """Generic wrapper for paginated list endpoints."""
+    total: int
+    page: int
+    size: int
+    items: list[T]

@@ -1,4 +1,3 @@
-from typing import Sequence
 from uuid import UUID
 from datetime import datetime, timezone
 from sqlalchemy import select, asc, desc, func
@@ -18,19 +17,19 @@ async def get(db: AsyncSession, asset_id: UUID) -> Asset | None:
 async def get_multi(
     db: AsyncSession,
     *,
-    skip: int = 0,
-    limit: int = 50,
+    page: int = 0,
+    size: int = 50,
     asset_type: AssetType | None = None,
     status: AssetStatus | None = None,
     tag: str | None = None,
     value_contains: str | None = None,
     sort_by: str = "last_seen",
     sort_order: str = "desc"
-) -> Sequence[Asset]:
-    """Fetch multiple assets with filtering, sorting, and pagination."""
-    # Hard cap limit to prevent memory exhaustion
-    actual_limit = min(limit, 1000)
-    
+) -> tuple[int, list[Asset]]:
+    """
+    Returns (total_count, page_of_assets).
+    Filtering, sorting, and pagination are all applied server-side.
+    """
     stmt = select(Asset)
 
     # Apply Filters
@@ -44,6 +43,10 @@ async def get_multi(
     if value_contains:
         stmt = stmt.where(Asset.value.icontains(value_contains))
 
+    # Compute total count before pagination
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total_count = (await db.execute(count_stmt)).scalar_one()
+
     # Apply Sorting
     sort_column = getattr(Asset, sort_by, Asset.last_seen)
     if sort_order.lower() == "asc":
@@ -52,10 +55,13 @@ async def get_multi(
         stmt = stmt.order_by(desc(sort_column))
 
     # Apply Pagination
-    stmt = stmt.offset(skip).limit(actual_limit)
+    offset = (page - 1) * size
+    stmt = stmt.offset(offset).limit(size)
 
     result = await db.execute(stmt)
-    return result.scalars().all()
+    assets = list(result.scalars().all())
+
+    return total_count, assets
 
 async def create(db: AsyncSession, *, obj_in: AssetCreate) -> Asset:
     """Create a new asset."""
