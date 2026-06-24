@@ -1,3 +1,5 @@
+import os
+
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
@@ -9,7 +11,10 @@ from app.core.database import get_db
 from app.models.base import Base
 
 # Point to the dedicated test database we created
-TEST_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@db:5432/darkatlas_test"
+TEST_DATABASE_URL = os.getenv(
+    "DATABASE_URL", 
+    "postgresql+asyncpg://postgres:postgres@db:5432/darkatlas_test"
+)
 
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 TestingSessionLocal = async_sessionmaker(bind=test_engine, expire_on_commit=False, autoflush=False)
