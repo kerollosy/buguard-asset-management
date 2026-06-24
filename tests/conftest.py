@@ -1,4 +1,5 @@
 import os
+os.environ["ENVIRONMENT"] = "test" # Force test mode to ensure rate limiting is disabled during tests
 
 import pytest
 import pytest_asyncio

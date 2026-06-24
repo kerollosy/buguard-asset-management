@@ -1,7 +1,11 @@
 import logging
-from fastapi import FastAPI
-from app.routers import assets, auth, bulk, relationships
 
+from fastapi import FastAPI
+from slowapi.errors import RateLimitExceeded
+from slowapi.extension import _rate_limit_exceeded_handler
+
+from app.core.limiter import limiter
+from app.routers import assets, auth, bulk, relationships
 from app.core.config import settings
 
 logging.basicConfig(
@@ -20,10 +24,9 @@ app = FastAPI(
     version="1.0.0",
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler) # type: ignore
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
 
 @app.get("/health", tags=["Health"], summary="Health check")
 async def health():
