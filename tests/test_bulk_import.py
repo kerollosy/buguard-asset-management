@@ -40,8 +40,8 @@ async def test_basic_import(async_client: AsyncClient):
     r = await async_client.post("/assets/bulk", json=SAMPLE_DATASET)
     assert r.status_code == 200
     body = r.json()
-    assert body["processed_count"] == 3
-    assert body["failed_count"] == 0
+    assert body["imported"] == 3
+    assert body["updated"] == 0
     assert body["errors"] == []
 
 
@@ -53,13 +53,31 @@ async def test_idempotent_reimport_no_duplicates(async_client: AsyncClient):
     body = r.json()
 
     # Second import: all records should be updates, not new inserts
-    assert body["processed_count"] == 3
-    assert body["failed_count"] == 0
+    assert body["imported"] == 0
+    assert body["updated"] == 3
     assert body["errors"] == []
 
     # Verify count in the DB
     r = await async_client.get("/assets/")
     assert r.json()["total"] == 3
+
+
+@pytest.mark.asyncio
+async def test_stale_asset_reactivated_on_resight(async_client: AsyncClient):
+    """A stale asset that appears in a new import should flip back to active."""
+    await async_client.post("/assets/bulk", json=SAMPLE_DATASET)
+
+    # Mark the domain stale
+    r = await async_client.get("/assets/", params={"value_contains": "example.com", "type": "domain"})
+    domain = r.json()["items"][0]
+    await async_client.patch(f"/assets/{domain['id']}", json={"status": "stale"})
+
+    # Re-import
+    await async_client.post("/assets/bulk", json=SAMPLE_DATASET)
+
+    # Should be active again
+    r = await async_client.get(f"/assets/{domain['id']}")
+    assert r.json()["status"] == "active"
 
 
 @pytest.mark.asyncio
@@ -126,12 +144,10 @@ async def test_malformed_records_skipped_batch_continues(async_client: AsyncClie
         {"id": "good2", "type": "subdomain", "value": "sub.good.com", "status": "active", "source": "scan", "tags": [], "metadata": {}},
     ]
     r = await async_client.post("/assets/bulk", json=batch)
-    # FastAPI will reject the batch at validation time (422) because Pydantic
-    # validates each element of the list. Alternatively the service can handle
-    # individual errors. Either behaviour is acceptable — we test that the API
-    # responds and the valid records end up in the DB when using a valid batch.
-    # For the mixed case we accept 422 (strict validation) or 200 with errors.
-    assert r.status_code in (200, 422)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["imported"] == 2
+    assert len(body["errors"]) == 1
 
 
 @pytest.mark.asyncio
@@ -139,6 +155,6 @@ async def test_empty_batch_is_safe(async_client: AsyncClient):
     r = await async_client.post("/assets/bulk", json=[])
     assert r.status_code == 200
     body = r.json()
-    assert body["processed_count"] == 0
-    assert body["failed_count"] == 0
+    assert body["imported"] == 0
+    assert body["updated"] == 0
     assert body["errors"] == []
