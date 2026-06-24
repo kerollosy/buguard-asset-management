@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import ValidationError
 
+from app.core import constants
 from app.core.limiter import limiter
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -17,7 +18,7 @@ router = APIRouter()
 
 
 @router.post("/bulk", response_model=BulkImportResponse, status_code=status.HTTP_200_OK, dependencies=[Depends(get_current_user)])
-@limiter.limit("10/minute")
+@limiter.limit(constants.RATE_LIMIT_BULK)
 async def bulk_import_assets(
     request: Request,
     payload: list[dict[str, Any]],

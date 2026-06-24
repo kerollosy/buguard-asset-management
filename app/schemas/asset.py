@@ -3,13 +3,14 @@ from datetime import datetime
 from typing import Any
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
+from app.core import constants
 from app.models.asset import AssetType, AssetStatus
 from app.schemas.relationships import AssetRelationshipResponse
 
 
 class AssetBase(BaseModel):
     type: AssetType
-    value: str = Field(..., min_length=1, max_length=512)
+    value: str = Field(..., min_length=1, max_length=constants.MAX_ASSET_VALUE_LENGTH)
     status: AssetStatus = AssetStatus.active
     source: str
     tags: list[str] = Field(default_factory=list)

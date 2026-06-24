@@ -1,0 +1,13 @@
+# Database Field Length Constraints
+MAX_EXTERNAL_ID_LENGTH = 128
+MAX_ASSET_VALUE_LENGTH = 512
+MAX_RELATIONSHIP_TYPE_LENGTH = 50
+MAX_SOURCE_LENGTH = 20
+
+# Pagination Settings
+DEFAULT_PAGE_SIZE = 20
+MAX_PAGE_SIZE = 100
+
+# Rate Limiting Configurations
+RATE_LIMIT_STANDARD = "60/minute"
+RATE_LIMIT_BULK = "10/minute"

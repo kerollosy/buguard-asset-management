@@ -14,6 +14,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core import constants
 from app.models.base import Base
 
 
@@ -53,7 +54,7 @@ class AssetRelationship(Base):
         nullable=False,
     )
     # E.g., "resolves_to", "covers", "runs_on"
-    relationship_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    relationship_type: Mapped[str] = mapped_column(String(constants.MAX_RELATIONSHIP_TYPE_LENGTH), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=_now
     )
@@ -91,12 +92,12 @@ class Asset(Base):
     )
     # The original ID from the upstream scan/import — stored for traceability
     # but NOT used as the dedup key (type + value is canonical).
-    external_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    external_id: Mapped[str | None] = mapped_column(String(constants.MAX_EXTERNAL_ID_LENGTH), nullable=True)
 
     type: Mapped[AssetType] = mapped_column(Enum(AssetType), nullable=False)
     value: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[AssetStatus] = mapped_column(Enum(AssetStatus), nullable=False, default=AssetStatus.active)
-    source: Mapped[str] = mapped_column(String(20), nullable=False, default="manual")
+    source: Mapped[str] = mapped_column(String(constants.MAX_SOURCE_LENGTH), nullable=False, default="manual")
 
     # Timestamps
     first_seen: Mapped[datetime] = mapped_column(

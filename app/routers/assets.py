@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
+from app.core import constants
 from app.core.limiter import limiter
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -31,11 +32,11 @@ async def create_asset(
 
 
 @router.get("/", response_model=PaginatedResponse[AssetResponse])
-@limiter.limit("60/minute")
+@limiter.limit(constants.RATE_LIMIT_STANDARD)
 async def list_assets(
     request: Request,
     page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100),
+    size: int = Query(constants.DEFAULT_PAGE_SIZE, ge=1, le=constants.MAX_PAGE_SIZE),
     asset_type: AssetType | None = Query(None, alias="type"),
     status: AssetStatus | None = None,
     tag: str | None = None,
