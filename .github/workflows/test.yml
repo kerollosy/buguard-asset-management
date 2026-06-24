@@ -10,6 +10,13 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/darkatlas_test
+      SECRET_KEY: test-secret-key
+      ALGORITHM: HS256
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: admin
+
     services:
       postgres:
         image: postgres:16-alpine
@@ -40,11 +47,5 @@ jobs:
         pip install -r requirements.txt
         
     - name: Run Pytest
-      env:
-        DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/darkatlas_test
-        SECRET_KEY: test-secret-key
-        ALGORITHM: HS256
-        ADMIN_USERNAME: admin
-        ADMIN_PASSWORD: admin
       run: |
         pytest tests/ -v
