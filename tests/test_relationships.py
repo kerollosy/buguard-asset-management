@@ -99,3 +99,60 @@ async def test_list_relationships_by_source(async_client: AsyncClient):
     assert r.status_code == 200
     graph_data = r.json()
     assert len(graph_data["incoming"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_delete_relationship(async_client: AsyncClient):
+    domain = await _create_asset(async_client, "domain", "del-rel.com")
+    sub = await _create_asset(async_client, "subdomain", "api.del-rel.com")
+
+    created = (
+        await async_client.post(
+            "/assets/relationships",
+            json={"source_id": sub["id"], "target_id": domain["id"], "relationship_type": "subdomain_of"},
+        )
+    ).json()
+
+    print(f"Created relationship: {created}")
+    r = await async_client.delete(f"/assets/relationships/{created['id']}")
+    assert r.status_code == 204
+
+    r = await async_client.get("/assets/relationships", params={"source_id": sub["id"]})
+    assert r.json() == []
+
+
+@pytest.mark.asyncio
+async def test_asset_graph_endpoint(async_client: AsyncClient):
+    domain = await _create_asset(async_client, "domain", "graph.com")
+    sub = await _create_asset(async_client, "subdomain", "api.graph.com")
+
+    await async_client.post(
+        "/assets/relationships",
+        json={"source_id": sub["id"], "target_id": domain["id"], "relationship_type": "subdomain_of"},
+    )
+
+    r = await async_client.get(f"/assets/{sub['id']}/graph")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["id"] == sub["id"]
+    assert len(body["outgoing"]) == 1
+    assert body["outgoing"][0]["relationship_type"] == "subdomain_of"
+    assert body["incoming"] == []
+
+
+@pytest.mark.asyncio
+async def test_deleting_asset_cascades_relationships(async_client: AsyncClient):
+    """Deleting an asset must also remove its relationship edges."""
+    domain = await _create_asset(async_client, "domain", "cascade.com")
+    sub = await _create_asset(async_client, "subdomain", "api.cascade.com")
+
+    await async_client.post(
+        "/assets/relationships",
+        json={"source_id": sub["id"], "target_id": domain["id"], "relationship_type": "subdomain_of"},
+    )
+
+    await async_client.delete(f"/assets/{sub['id']}")
+
+    # The relationship should no longer exist
+    r = await async_client.get("/assets/relationships", params={"source_id": sub["id"]})
+    assert r.json() == []
