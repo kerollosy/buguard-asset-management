@@ -14,5 +14,14 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str
 
+    # JWT Authentication Settings
+    SECRET_KEY: str = "super-secret-key"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    
+    # Default Admin Credentials
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str = "buguard2026"
+
 
 settings = Settings()

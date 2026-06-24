@@ -1,6 +1,6 @@
 import logging
 from fastapi import FastAPI
-from app.routers import assets, bulk, relationships
+from app.routers import assets, auth, bulk, relationships
 
 from app.core.config import settings
 
@@ -32,3 +32,4 @@ async def health():
 app.include_router(relationships.router, prefix="/assets", tags=["relationships"])
 app.include_router(assets.router, prefix="/assets", tags=["Assets"])
 app.include_router(bulk.router, prefix="/assets", tags=["bulk import"])
+app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
