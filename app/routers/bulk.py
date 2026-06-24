@@ -1,12 +1,13 @@
 
 from typing import Any
+
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import ValidationError
 
 from app.core.database import get_db
 from app.schemas.asset import AssetCreate
-from app.schemas.bulk import BulkImportResponse
+from app.schemas.bulk import BulkImportError, BulkImportResponse
 from app.services import bulk_import_service
 
 
@@ -23,7 +24,7 @@ async def bulk_import_assets(
     Malformed records are skipped and reported; valid records are ingested or merged.
     """
     valid_assets: list[AssetCreate] = []
-    errors: list[dict[str, Any]] = []
+    errors: list[BulkImportError] = []
 
     # 1. Triage the payload
     for index, item in enumerate(payload):
@@ -33,21 +34,31 @@ async def bulk_import_assets(
             valid_assets.append(asset)
         except ValidationError as e:
             # Catch bad records without failing the entire HTTP request
-            errors.append({
-                "index": index,
-                "value": item.get("value", "unknown"),
-                "errors": e.errors()
-            })
+            external_id = item.get("id", None)
+            value = item.get("value", None)
+            if external_id is None:
+                external_id = item.get("external_id", None)
+            
+            errors.append(
+                BulkImportError(
+                    index=index,
+                    external_id=external_id,
+                    value=value,
+                    error="; ".join(f"{err['loc'][-1]}: {err['msg']}" for err in e.errors())
+                )
+            )
 
     # 2. Process valid assets in bulk
+    imported_count = 0
+    updated_count = 0
     if valid_assets:
         # Note: For payloads > 10,000 records, we would implement chunking here.
         # Given the scope, we process the valid batch in a single transaction.
-        await bulk_import_service.bulk_upsert(db, valid_assets)
+        imported_count, updated_count = await bulk_import_service.bulk_upsert(db, valid_assets)
 
     # 3. Return a detailed report
     return BulkImportResponse(
-        processed_count=len(valid_assets),
-        failed_count=len(errors),
+        imported=imported_count,
+        updated=updated_count,
         errors=errors
     )
