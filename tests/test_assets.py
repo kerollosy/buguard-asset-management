@@ -15,7 +15,7 @@ def payload(**overrides):
 
 @pytest.mark.asyncio
 async def test_create_asset(async_client: AsyncClient):
-    r = await async_client.post("/assets/", json=payload())
+    r = await async_client.post("/api/v1/assets/", json=payload())
     assert r.status_code == 201
     body = r.json()
     assert body["type"] == "domain"
@@ -28,30 +28,30 @@ async def test_create_asset(async_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_duplicate_create_asset(async_client: AsyncClient):
-    await async_client.post("/assets/", json=payload())
-    r = await async_client.post("/assets/", json=payload())
+    await async_client.post("/api/v1/assets/", json=payload())
+    r = await async_client.post("/api/v1/assets/", json=payload())
     assert r.status_code == 409
 
 
 @pytest.mark.asyncio
 async def test_get_asset(async_client: AsyncClient):
-    created = (await async_client.post("/assets/", json=payload())).json()
-    r = await async_client.get(f"/assets/{created['id']}")
+    created = (await async_client.post("/api/v1/assets/", json=payload())).json()
+    r = await async_client.get(f"/api/v1/assets/{created['id']}")
     assert r.status_code == 200
     assert r.json()["id"] == created["id"]
 
 
 @pytest.mark.asyncio
 async def test_get_asset_not_found(async_client: AsyncClient):
-    r = await async_client.get("/assets/00000000-0000-0000-0000-000000000000")
+    r = await async_client.get("/api/v1/assets/00000000-0000-0000-0000-000000000000")
     assert r.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_update_asset(async_client: AsyncClient):
-    created = (await async_client.post("/assets/", json=payload())).json()
+    created = (await async_client.post("/api/v1/assets/", json=payload())).json()
     r = await async_client.patch(
-        f"/assets/{created['id']}",
+        f"/api/v1/assets/{created['id']}",
         json={"status": "stale", "tags": ["prod", "updated"]},
     )
     assert r.status_code == 200
@@ -62,24 +62,24 @@ async def test_update_asset(async_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_delete_asset(async_client: AsyncClient):
-    created = (await async_client.post("/assets/", json=payload())).json()
-    r = await async_client.delete(f"/assets/{created['id']}")
+    created = (await async_client.post("/api/v1/assets/", json=payload())).json()
+    r = await async_client.delete(f"/api/v1/assets/{created['id']}")
     assert r.status_code == 204
 
-    r = await async_client.get(f"/assets/{created['id']}")
+    r = await async_client.get(f"/api/v1/assets/{created['id']}")
     assert r.status_code == 404
 
 # Filtering
 
 @pytest.mark.asyncio
 async def test_filter_by_type(async_client: AsyncClient):
-    await async_client.post("/assets/", json=payload(value="filter-domain.com"))
+    await async_client.post("/api/v1/assets/", json=payload(value="filter-domain.com"))
     await async_client.post(
-        "/assets/",
+        "/api/v1/assets/",
         json=payload(type="subdomain", value="sub.filter-domain.com"),
     )
 
-    r = await async_client.get("/assets/", params={"type": "domain"})
+    r = await async_client.get("/api/v1/assets/", params={"type": "domain"})
     assert r.status_code == 200
     body = r.json()
     print(body)
@@ -88,20 +88,20 @@ async def test_filter_by_type(async_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_filter_by_status(async_client: AsyncClient):
-    created = (await async_client.post("/assets/", json=payload(value="status-test.com"))).json()
-    await async_client.post(f"/assets/{created['id']}/stale")
+    created = (await async_client.post("/api/v1/assets/", json=payload(value="status-test.com"))).json()
+    await async_client.post(f"/api/v1/assets/{created['id']}/stale")
 
-    r = await async_client.get("/assets/", params={"status": "stale"})
+    r = await async_client.get("/api/v1/assets/", params={"status": "stale"})
     assert r.status_code == 200
     assert all(a["status"] == "stale" for a in r.json()["items"])
 
 
 @pytest.mark.asyncio
 async def test_filter_by_tag(async_client: AsyncClient):
-    await async_client.post("/assets/", json=payload(value="tagged.com", tags=["prod", "external"]))
-    await async_client.post("/assets/", json=payload(value="other.com", tags=["dev"]))
+    await async_client.post("/api/v1/assets/", json=payload(value="tagged.com", tags=["prod", "external"]))
+    await async_client.post("/api/v1/assets/", json=payload(value="other.com", tags=["dev"]))
 
-    r = await async_client.get("/assets/", params={"tag": "prod"})
+    r = await async_client.get("/api/v1/assets/", params={"tag": "prod"})
     items = r.json()["items"]
     assert len(items) >= 1
     assert all("prod" in a["tags"] for a in items)
@@ -109,10 +109,10 @@ async def test_filter_by_tag(async_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_filter_by_value_contains(async_client: AsyncClient):
-    await async_client.post("/assets/", json=payload(value="api.example.com"))
-    await async_client.post("/assets/", json=payload(value="unrelated.org"))
+    await async_client.post("/api/v1/assets/", json=payload(value="api.example.com"))
+    await async_client.post("/api/v1/assets/", json=payload(value="unrelated.org"))
 
-    r = await async_client.get("/assets/", params={"value_contains": "api.example"})
+    r = await async_client.get("/api/v1/assets/", params={"value_contains": "api.example"})
     items = r.json()["items"]
     assert len(items) >= 1
     assert all("api.example" in a["value"] for a in items)
@@ -123,9 +123,9 @@ async def test_filter_by_value_contains(async_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_pagination(async_client: AsyncClient):
     for i in range(5):
-        await async_client.post("/assets/", json=payload(value=f"page{i}.com"))
+        await async_client.post("/api/v1/assets/", json=payload(value=f"page{i}.com"))
 
-    r = await async_client.get("/assets/", params={"page": 1, "size": 2})
+    r = await async_client.get("/api/v1/assets/", params={"page": 1, "size": 2})
     body = r.json()
     assert body["total"] >= 5
     assert len(body["items"]) == 2
@@ -135,7 +135,7 @@ async def test_pagination(async_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_max_page_size_enforced(async_client: AsyncClient):
-    r = await async_client.get("/assets/", params={"size": 9999})
+    r = await async_client.get("/api/v1/assets/", params={"size": 9999})
     assert r.status_code == 422
 
 
@@ -143,9 +143,9 @@ async def test_max_page_size_enforced(async_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_add_tags(async_client: AsyncClient):
-    created = (await async_client.post("/assets/", json=payload(tags=["root"]))).json()
+    created = (await async_client.post("/api/v1/assets/", json=payload(tags=["root"]))).json()
     r = await async_client.post(
-        f"/assets/{created['id']}/tags",
+        f"/api/v1/assets/{created['id']}/tags",
         json={"tags": ["prod", "external"]},
     )
     assert r.status_code == 200
@@ -160,12 +160,12 @@ async def test_add_tags(async_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_invalid_type_rejected(async_client: AsyncClient):
     r = await async_client.post(
-        "/assets/", json={**payload(), "type": "not_a_real_type"}
+        "/api/v1/assets/", json={**payload(), "type": "not_a_real_type"}
     )
     assert r.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_empty_value_rejected(async_client: AsyncClient):
-    r = await async_client.post("/assets/", json={**payload(), "value": ""})
+    r = await async_client.post("/api/v1/assets/", json={**payload(), "value": ""})
     assert r.status_code == 422

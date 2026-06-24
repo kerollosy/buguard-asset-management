@@ -9,7 +9,7 @@ async def test_login_success(async_client: AsyncClient):
     """Test that valid credentials return a JWT token."""
     # Note: OAuth2 strictly requires 'data' (Form encoded) instead of 'json'
     response = await async_client.post(
-        "/auth/token",
+        "/api/v1/auth/token",
         data={
             "username": settings.ADMIN_USERNAME,
             "password": settings.ADMIN_PASSWORD,
@@ -26,7 +26,7 @@ async def test_login_success(async_client: AsyncClient):
 async def test_login_failure(async_client: AsyncClient):
     """Test that invalid credentials are rejected."""
     response = await async_client.post(
-        "/auth/token",
+        "/api/v1/auth/token",
         data={
             "username": settings.ADMIN_USERNAME,
             "password": "wrong_password",
@@ -40,13 +40,13 @@ async def test_login_failure(async_client: AsyncClient):
 @pytest.mark.parametrize(
     "method, path",
     [
-        ("POST", "/assets/"),
-        ("PATCH", "/assets/00000000-0000-0000-0000-000000000000"),
-        ("DELETE", "/assets/00000000-0000-0000-0000-000000000000"),
-        ("POST", "/assets/00000000-0000-0000-0000-000000000000/tags"),
-        ("POST", "/assets/bulk"),
-        ("POST", "/assets/relationships"),
-        ("DELETE", "/assets/relationships/00000000-0000-0000-0000-000000000000"),
+        ("POST", "/api/v1/assets/"),
+        ("PATCH", "/api/v1/assets/00000000-0000-0000-0000-000000000000"),
+        ("DELETE", "/api/v1/assets/00000000-0000-0000-0000-000000000000"),
+        ("POST", "/api/v1/assets/00000000-0000-0000-0000-000000000000/tags"),
+        ("POST", "/api/v1/assets/bulk"),
+        ("POST", "/api/v1/assets/relationships"),
+        ("DELETE", "/api/v1/assets/relationships/00000000-0000-0000-0000-000000000000"),
     ],
 )
 @pytest.mark.asyncio
@@ -65,6 +65,6 @@ async def test_write_routes_require_auth(unauthed_client: AsyncClient, method: s
 @pytest.mark.asyncio
 async def test_read_routes_allow_unauthed(unauthed_client: AsyncClient):
     """Ensure that GET endpoints are still public."""
-    response = await unauthed_client.get("/assets/")
+    response = await unauthed_client.get("/api/v1/assets/")
     
     assert response.status_code != 401

@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from slowapi.errors import RateLimitExceeded
 from slowapi.extension import _rate_limit_exceeded_handler
 
@@ -54,8 +54,14 @@ async def check_health():
     """Verify that the API and environment are running correctly."""
     return {"status": "ok", "environment": settings.ENVIRONMENT}
 
-# Including Routers and linking them to their corresponding OpenAPI tags
-app.include_router(relationships.router, prefix="/assets", tags=["Relationships"])
-app.include_router(assets.router, prefix="/assets", tags=["Assets"])
-app.include_router(bulk.router, prefix="/assets", tags=["Bulk Import"])
-app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+
+api_v1_router = APIRouter(prefix="/api/v1")
+
+# Including Routers into the v1 prefix
+api_v1_router.include_router(relationships.router, prefix="/assets", tags=["Relationships"])
+api_v1_router.include_router(assets.router, prefix="/assets", tags=["Assets"])
+api_v1_router.include_router(bulk.router, prefix="/assets", tags=["Bulk Import"])
+api_v1_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+
+# Mount the v1 router to the main application
+app.include_router(api_v1_router)
