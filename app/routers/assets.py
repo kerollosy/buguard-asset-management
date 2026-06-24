@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 from app.core.database import get_db
+from app.core.security import get_current_user
 from app.schemas.asset import AddTagsRequest, AssetCreate, AssetGraphResponse, AssetResponse, AssetUpdate
 from app.schemas.pagination import AssetSortField, PaginatedResponse, SortOrder
 from app.models.asset import AssetType, AssetStatus
@@ -11,7 +12,7 @@ from app.services import asset_service
 
 router = APIRouter()
 
-@router.post("/", response_model=AssetResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=AssetResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_current_user)])
 async def create_asset(
     payload: AssetCreate,
     db: AsyncSession = Depends(get_db)
@@ -72,7 +73,7 @@ async def get_asset(
     return asset
 
 
-@router.patch("/{asset_id}", response_model=AssetResponse)
+@router.patch("/{asset_id}", response_model=AssetResponse, dependencies=[Depends(get_current_user)])
 async def update_asset(
     asset_id: UUID,
     payload: AssetUpdate,
@@ -87,7 +88,7 @@ async def update_asset(
     return asset
 
 
-@router.delete("/{asset_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{asset_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(get_current_user)])
 async def delete_asset(
     asset_id: UUID,
     db: AsyncSession = Depends(get_db)
@@ -103,6 +104,7 @@ async def delete_asset(
     "/{asset_id}/tags",
     response_model=AssetResponse,
     summary="Add tags to an asset (union merge)",
+    dependencies=[Depends(get_current_user)]
 )
 async def add_tags(asset_id: UUID, body: AddTagsRequest, db: AsyncSession = Depends(get_db)):
     asset = await asset_service.get(db, asset_id)

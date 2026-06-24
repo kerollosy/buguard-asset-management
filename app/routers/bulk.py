@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import ValidationError
 
 from app.core.database import get_db
+from app.core.security import get_current_user
 from app.schemas.asset import AssetCreate
 from app.schemas.bulk import BulkImportError, BulkImportResponse
 from app.services import bulk_import_service
@@ -14,7 +15,7 @@ from app.services import bulk_import_service
 router = APIRouter()
 
 
-@router.post("/bulk", response_model=BulkImportResponse, status_code=status.HTTP_200_OK)
+@router.post("/bulk", response_model=BulkImportResponse, status_code=status.HTTP_200_OK, dependencies=[Depends(get_current_user)])
 async def bulk_import_assets(
     payload: list[dict[str, Any]],
     db: AsyncSession = Depends(get_db)

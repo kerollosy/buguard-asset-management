@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.security import get_current_user
 from app.schemas.relationships import AssetRelationshipBase, AssetRelationshipResponse
 from app.services import relationship_service
 
@@ -11,7 +12,7 @@ from app.services import relationship_service
 router = APIRouter()
 
 
-@router.post("/relationships", response_model=AssetRelationshipResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/relationships", response_model=AssetRelationshipResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_current_user)])
 async def create_asset_relationship(
     relationship_in: AssetRelationshipBase,
     db: AsyncSession = Depends(get_db)
@@ -39,7 +40,7 @@ async def list_relationships(
     return [AssetRelationshipResponse.model_validate(r) for r in rels]
 
 
-@router.delete("/relationships/{rel_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/relationships/{rel_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(get_current_user)])
 async def remove_asset_relationship(
     rel_id: UUID, db: AsyncSession = Depends(get_db)
 ):
