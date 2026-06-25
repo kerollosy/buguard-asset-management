@@ -8,7 +8,12 @@ from app.core.limiter import limiter
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.schemas.asset import AddTagsRequest, AssetCreate, AssetGraphResponse, AssetResponse, AssetUpdate
-from app.schemas.pagination import AssetSortField, PaginatedResponse, SortOrder
+from app.schemas.pagination import (
+    AssetSortField,
+    CertificateLifecycleFilter,
+    PaginatedResponse,
+    SortOrder,
+)
 from app.models.asset import AssetType, AssetStatus
 from app.services import asset_service
 
@@ -41,6 +46,8 @@ async def list_assets(
     status: AssetStatus | None = None,
     tag: str | None = None,
     value_contains: str | None = None,
+    certificate_lifecycle: CertificateLifecycleFilter | None = None,
+    expiring_within_days: int = Query(30, ge=1, le=365),
     sort_by: AssetSortField = Query(AssetSortField.LAST_SEEN),
     sort_order: SortOrder = Query(SortOrder.DESC),
     db: AsyncSession = Depends(get_db)
@@ -54,6 +61,8 @@ async def list_assets(
         status=status,
         tag=tag,
         value_contains=value_contains,
+        certificate_lifecycle=certificate_lifecycle,
+        expiring_within_days=expiring_within_days,
         sort_by=sort_by,
         sort_order=sort_order
     )

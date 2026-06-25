@@ -1,5 +1,6 @@
 import pytest
 from httpx import AsyncClient
+from datetime import date, timedelta
 
 
 def payload(**overrides):
@@ -116,6 +117,75 @@ async def test_filter_by_value_contains(async_client: AsyncClient):
     items = r.json()["items"]
     assert len(items) >= 1
     assert all("api.example" in a["value"] for a in items)
+
+
+@pytest.mark.asyncio
+async def test_filter_expired_certificates(async_client: AsyncClient):
+    await async_client.post(
+        "/api/v1/assets/",
+        json=payload(
+            type="certificate",
+            value="CN=expired.example.com",
+            metadata={"expires": "2000-01-01"},
+        ),
+    )
+    await async_client.post(
+        "/api/v1/assets/",
+        json=payload(
+            type="certificate",
+            value="CN=future.example.com",
+            metadata={"expires": "2099-01-01"},
+        ),
+    )
+    await async_client.post(
+        "/api/v1/assets/",
+        json=payload(type="domain", value="non-cert.example.com"),
+    )
+
+    r = await async_client.get(
+        "/api/v1/assets/",
+        params={"certificate_lifecycle": "expired"},
+    )
+    assert r.status_code == 200
+    items = r.json()["items"]
+    assert len(items) == 1
+    assert items[0]["type"] == "certificate"
+    assert items[0]["value"] == "CN=expired.example.com"
+
+
+@pytest.mark.asyncio
+async def test_filter_expiring_soon_certificates(async_client: AsyncClient):
+    soon = (date.today() + timedelta(days=10)).isoformat()
+    later = (date.today() + timedelta(days=90)).isoformat()
+
+    await async_client.post(
+        "/api/v1/assets/",
+        json=payload(
+            type="certificate",
+            value="CN=soon.example.com",
+            metadata={"expires": soon},
+        ),
+    )
+    await async_client.post(
+        "/api/v1/assets/",
+        json=payload(
+            type="certificate",
+            value="CN=later.example.com",
+            metadata={"expires": later},
+        ),
+    )
+
+    r = await async_client.get(
+        "/api/v1/assets/",
+        params={
+            "certificate_lifecycle": "expiring_soon",
+            "expiring_within_days": 40,
+        },
+    )
+    assert r.status_code == 200
+    items = r.json()["items"]
+    assert len(items) == 1
+    assert items[0]["value"] == "CN=soon.example.com"
 
 
 # Pagination

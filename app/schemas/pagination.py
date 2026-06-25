@@ -40,3 +40,8 @@ class AssetSortField(str, Enum):
     TYPE = "type"
     VALUE = "value"
     STATUS = "status"
+
+
+class CertificateLifecycleFilter(str, Enum):
+    EXPIRED = "expired"
+    EXPIRING_SOON = "expiring_soon"

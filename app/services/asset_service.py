@@ -1,12 +1,13 @@
 from uuid import UUID
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy import select, asc, desc, func, delete as delete_stmt
+from sqlalchemy import case, select, asc, desc, func, delete as delete_stmt
 from sqlalchemy.ext.asyncio import AsyncSession 
 from sqlalchemy.orm import selectinload
 
 from app.models.asset import Asset, AssetRelationship, AssetType, AssetStatus
 from app.schemas.asset import AssetCreate, AssetUpdate
+from app.schemas.pagination import CertificateLifecycleFilter
 
 
 async def get(db: AsyncSession, asset_id: UUID) -> Asset | None:
@@ -30,6 +31,8 @@ async def get_multi(
     status: AssetStatus | None = None,
     tag: str | None = None,
     value_contains: str | None = None,
+    certificate_lifecycle: CertificateLifecycleFilter | None = None,
+    expiring_within_days: int = 30,
     sort_by: str = "last_seen",
     sort_order: str = "desc"
 ) -> tuple[int, list[Asset]]:
@@ -49,6 +52,28 @@ async def get_multi(
         stmt = stmt.where(Asset.tags.contains([tag]))
     if value_contains:
         stmt = stmt.where(Asset.value.icontains(value_contains))
+    if certificate_lifecycle is not None:
+        today = date.today()
+        expires_text = Asset.asset_metadata["expires"].astext
+        expires_date = case(
+            (
+                expires_text.op("~")(r"^\d{4}-\d{2}-\d{2}$"),
+                func.to_date(expires_text, "YYYY-MM-DD"),
+            ),
+            else_=None,
+        )
+
+        stmt = stmt.where(Asset.type == AssetType.certificate)
+
+        if certificate_lifecycle == CertificateLifecycleFilter.EXPIRED:
+            stmt = stmt.where(expires_date.is_not(None), expires_date < today)
+        elif certificate_lifecycle == CertificateLifecycleFilter.EXPIRING_SOON:
+            threshold = today + timedelta(days=expiring_within_days)
+            stmt = stmt.where(
+                expires_date.is_not(None),
+                expires_date >= today,
+                expires_date <= threshold,
+            )
 
     # Compute total count before pagination
     count_stmt = select(func.count()).select_from(stmt.subquery())
