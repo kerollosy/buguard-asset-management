@@ -14,11 +14,11 @@ A REST API acting as the system of record for the DarkAtlas Attack Surface Monit
 
 ## 📋 Table of Contents
 - [Quick Start](#-quick-start)
-- [Environment Variables](#-environment-variables)
+- [Environment Variables](#%EF%B8%8F-environment-variables)
 - [Features Implemented](#-features-implemented)
 - [API Reference](#-api-reference)
 - [Testing](#-testing)
-- [Architecture, Assumptions & Edge Cases](#-architecture-assumptions--edge-cases)
+- [Architecture, Assumptions & Edge Cases](#%EF%B8%8F-architecture-assumptions--edge-cases)
 
 ---
 
@@ -80,6 +80,7 @@ The application relies on the following environment variables (pre-filled in `.e
 | `GET` | `/api/v1/assets/{id}` | — | Get asset by ID |
 | `PATCH` | `/api/v1/assets/{id}` | ✓ | Partial update |
 | `DELETE` | `/api/v1/assets/{id}` | ✓ | Delete asset (cascades relationships) |
+| `POST` | `/api/v1/assets/{id}/stale` | ✓ | Mark asset as stale |
 | `POST` | `/api/v1/assets/{id}/tags` | ✓ | Union-merge tags |
 | `GET` | `/api/v1/assets/{id}/graph` | — | Asset + immediate relationship graph |
 | `POST` | `/api/v1/assets/bulk` | ✓ | Bulk import (idempotent) |
@@ -138,6 +139,8 @@ The application relies on the following environment variables (pre-filled in `.e
   }
 ]
 ```
+
+Relationship hints (`parent`, `covers`) are processed automatically and turned into relationship edges.
 
 ## 🧪 Testing
 

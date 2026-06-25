@@ -1,4 +1,3 @@
-
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request, status
@@ -38,17 +37,12 @@ async def bulk_import_assets(
             asset = AssetCreate.model_validate(item)
             valid_assets.append(asset)
         except ValidationError as e:
-            # Catch bad records without failing the entire HTTP request
-            external_id = item.get("id", None)
-            value = item.get("value", None)
-            if external_id is None:
-                external_id = item.get("external_id", None)
-            
+            external_id = item.get("id") or item.get("external_id")
             errors.append(
                 BulkImportError(
                     index=index,
                     external_id=external_id,
-                    value=value,
+                    value=item.get("value"),
                     error="; ".join(f"{err['loc'][-1]}: {err['msg']}" for err in e.errors())
                 )
             )
@@ -56,14 +50,21 @@ async def bulk_import_assets(
     # 2. Process valid assets in bulk
     imported_count = 0
     updated_count = 0
-    if valid_assets:
-        # Note: For payloads > 10,000 records, we would implement chunking here.
-        # Given the scope, we process the valid batch in a single transaction.
-        imported_count, updated_count = await bulk_import_service.bulk_upsert(db, valid_assets)
+    relationships_created = 0
 
-    # 3. Return a detailed report
+    if valid_assets:
+        # 2. Upsert assets — now also returns the ext_id → UUID map
+        imported_count, updated_count, ext_id_map = await bulk_import_service.bulk_upsert(db, valid_assets)
+
+        # 3. Second pass: resolve relationship hints using that map
+        relationships_created = await bulk_import_service.resolve_relationship_hints(
+            db, valid_assets, ext_id_map
+        )
+
+    # 4. Return a detailed report
     return BulkImportResponse(
         imported=imported_count,
         updated=updated_count,
+        relationships_created=relationships_created,
         errors=errors
     )

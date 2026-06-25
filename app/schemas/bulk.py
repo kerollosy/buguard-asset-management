@@ -32,6 +32,11 @@ class BulkImportResponse(BaseModel):
         description="Number of existing assets re-sighted and updated.",
         examples=[42]
     )
+    relationships_created: int = Field(
+        default=0,
+        description="Number of relationship edges created from import hints.",
+        examples=[12]
+    )
     errors: list[BulkImportError] = Field(
         default_factory=list,
         description="Per-record errors; valid records in the batch will still succeed.",

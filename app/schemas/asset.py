@@ -39,6 +39,18 @@ class AssetCreate(AssetBase):
         # Looks for "id" or "external_id" in the incoming JSON payload
         validation_alias=AliasChoices("id", "external_id")
     )
+    # Relationship hints from the DarkAtlas export format.
+    # Captured during triage, never written to the assets table.
+    parent: str | None = Field(
+        default=None,
+        description="external_id of the parent asset (e.g. domain for a subdomain).",
+        exclude=True,   # exclude=True keeps this out of model_dump(), safe from DB writes
+    )
+    covers: str | None = Field(
+        default=None,
+        description="external_id of the asset this certificate covers.",
+        exclude=True,
+    )
 
 
 class AssetUpdate(BaseModel):
