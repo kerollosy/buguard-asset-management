@@ -92,6 +92,25 @@ async def update_asset(
     return asset
 
 
+@router.post("/{asset_id}/stale", response_model=AssetResponse, dependencies=[Depends(get_current_user)])
+async def mark_asset_stale(
+    asset_id: UUID, 
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    **Mark Asset as Stale**
+    
+    Explicitly mark an asset as stale (e.g., if a scanner determines it is no longer responding).
+    """
+    asset = await asset_service.get(db, asset_id)
+    if not asset:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Asset {asset_id} not found")
+    
+    # We pass a simple schema into the existing update service
+    asset = await asset_service.update(db, asset, AssetUpdate(status=AssetStatus.stale))
+    return asset
+
+
 @router.delete("/{asset_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(get_current_user)])
 async def delete_asset(
     asset_id: UUID,

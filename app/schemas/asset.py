@@ -46,7 +46,7 @@ class AssetUpdate(BaseModel):
     status: AssetStatus | None = None
     tags: list[str] | None = None
     asset_metadata: dict[str, Any] | None = Field(
-        None,
+        default=None,
         validation_alias=AliasChoices("asset_metadata", "metadata"),
         serialization_alias="metadata",
     )
