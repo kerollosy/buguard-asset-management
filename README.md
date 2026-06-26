@@ -43,6 +43,8 @@ Edit .env if you need custom DB credentials (defaults match docker-compose)
 docker-compose up -d --build
 ```
 
+The API container runs Alembic migrations automatically before serving, so a fresh database comes up ready to use.
+
 ### 3. Access the API & Documentation
 Once the containers are running, the interactive Swagger UI is automatically generated:
 * **Base URL:** `http://localhost:8000`
@@ -191,13 +193,15 @@ docker compose exec app pytest
    The schema includes indexes for the main lookup and filtering paths, including `(type, value)` uniqueness, `tags`, `status`, and `last_seen`, which keeps deduplication and list queries efficient.
 6. **Rate Limiting:**
    `slowapi` is wired into the app to protect heavier endpoints, especially the bulk import route and high-volume list queries.
-7. **Authentication Flow:**
+7. **Startup Migrations:**
+   The container entrypoint runs `alembic upgrade head` before launching Uvicorn, so a clean database is initialized automatically on first boot.
+8. **Authentication Flow:**
    Write operations are protected with JWT via the OAuth2 Password flow. Clients POST credentials to `/api/v1/auth/token`, receive a signed JWT with a configurable expiry, and present it via `Authorization: Bearer <token>` on protected requests.
-8. **Deduplication Key:**
+9. **Deduplication Key:**
    `(type, value)` is the canonical identity of an asset, not the upstream `id` field. The upstream `id` is stored as `external_id` for traceability.
-9. **Merge Strategy:**
+10. **Merge Strategy:**
    Re-seen assets update `last_seen`, union-merge tags, and merge metadata at the top level so incoming keys win while preserving keys that are not present in the new payload.
-10. **Partial Success in Bulk Imports:**
+11. **Partial Success in Bulk Imports:**
    The bulk import route accepts `list[dict]` rather than strict router-level Pydantic validation. If a batch contains one malformed record, valid records are still ingested and the failure is returned in a localized error array instead of dropping the whole request.
 
 ### Next Steps
