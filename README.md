@@ -29,7 +29,7 @@ The entire stack (API and PostgreSQL database) is fully containerized for easy s
 ### 1. Clone the repository and set up the environment:
 Clone and enter the repo:
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/kerollosy/buguard-asset-management
 cd asset-management
 ```
 Copy the example environment file. The default admin credentials for testing the JWT auth are `admin` / `buguard2026`.
