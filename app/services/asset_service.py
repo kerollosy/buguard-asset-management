@@ -49,7 +49,7 @@ async def get_multi(
         stmt = stmt.where(Asset.status == status)
     if tag:
         # PostgreSQL specific array operation
-        stmt = stmt.where(Asset.tags.contains([tag]))
+        stmt = stmt.where(Asset.tags.contains([tag.strip().lower()]))
     if value_contains:
         stmt = stmt.where(Asset.value.icontains(value_contains))
     if certificate_lifecycle is not None:
