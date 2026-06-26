@@ -46,6 +46,21 @@ async def test_basic_import(async_client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_import_creates_relationship_from_parent_hint(async_client: AsyncClient):
+    await async_client.post("/api/v1/assets/bulk", json=SAMPLE_DATASET)
+
+    # The subdomain (a2) should have a "subdomain_of" edge pointing at the domain (a1)
+    # Fetch the subdomain asset and check its outgoing relationships
+    r = await async_client.get("/api/v1/assets/", params={"value_contains": "api.example.com", "type": "subdomain"})
+    sub = r.json()["items"][0]
+
+    r = await async_client.get(f"/api/v1/assets/{sub['id']}/graph")
+    assert r.status_code == 200
+    outgoing = r.json()["outgoing"]
+    assert any(rel["relationship_type"] == "subdomain_of" for rel in outgoing)
+
+
+@pytest.mark.asyncio
 async def test_idempotent_reimport_no_duplicates(async_client: AsyncClient):
     """Importing the same dataset twice must not create duplicate assets."""
     await async_client.post("/api/v1/assets/bulk", json=SAMPLE_DATASET)
@@ -70,7 +85,7 @@ async def test_stale_asset_reactivated_on_resight(async_client: AsyncClient):
     # Mark the domain stale
     r = await async_client.get("/api/v1/assets/", params={"value_contains": "example.com", "type": "domain"})
     domain = r.json()["items"][0]
-    await async_client.patch(f"/api/v1/assets/{domain['id']}", json={"status": "stale"})
+    await async_client.post(f"/assets/{domain['id']}/stale")
 
     # Re-import
     await async_client.post("/api/v1/assets/bulk", json=SAMPLE_DATASET)

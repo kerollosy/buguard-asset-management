@@ -1,6 +1,7 @@
+from datetime import date, timedelta
+
 import pytest
 from httpx import AsyncClient
-from datetime import date, timedelta
 
 
 def payload(**overrides):
@@ -70,6 +71,15 @@ async def test_delete_asset(async_client: AsyncClient):
     r = await async_client.get(f"/api/v1/assets/{created['id']}")
     assert r.status_code == 404
 
+
+@pytest.mark.asyncio
+async def test_mark_stale(async_client: AsyncClient):
+    created = (await async_client.post("/api/v1/assets/", json=payload())).json()
+    r = await async_client.post(f"/api/v1/assets/{created['id']}/stale")
+    assert r.status_code == 200
+    assert r.json()["status"] == "stale"
+
+
 # Filtering
 
 @pytest.mark.asyncio
@@ -118,6 +128,8 @@ async def test_filter_by_value_contains(async_client: AsyncClient):
     assert len(items) >= 1
     assert all("api.example" in a["value"] for a in items)
 
+
+# Certificate lifecycle filtering
 
 @pytest.mark.asyncio
 async def test_filter_expired_certificates(async_client: AsyncClient):
