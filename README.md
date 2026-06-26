@@ -19,6 +19,7 @@ A REST API acting as the system of record for the DarkAtlas Attack Surface Monit
 - [API Reference](#-api-reference)
 - [Testing](#-testing)
 - [Architecture, Assumptions & Edge Cases](#%EF%B8%8F-architecture-assumptions--edge-cases)
+- [Project Structure](#%EF%B8%8F-project-structure)
 
 ---
 
@@ -99,6 +100,8 @@ The application relies on the following environment variables (pre-filled in `.e
 | `status` | enum | Filter by status (`active`, `stale`, `archived`) |
 | `tag` | string | Filter assets containing this tag |
 | `value_contains` | string | Substring match on asset value |
+| `certificate_lifecycle` | enum | `expired` or `expiring_soon` — only applies to certificate assets |
+| `expiring_within_days` | int | Window for `expiring_soon` (default 30, max 365) |
 | `sort_by` | string | `last_seen` (default), `first_seen`, `value`, `type`, `status` |
 | `sort_order` | str | `desc` (default), `asc` |
 | `page` | int | Page number, 1-indexed |
@@ -157,7 +160,10 @@ Before running it locally, make sure `DATABASE_URL` points to an isolated test d
 # 1. Ensure everything is running
 docker-compose up -d --build
 
-# 2. Run the test suite
+# 2. Create the isolated test database
+docker compose exec db psql -U postgres -c "CREATE DATABASE darkatlas_test;"
+
+# 3. Run the test suite
 docker compose exec app pytest
 ```
 
@@ -185,8 +191,8 @@ docker compose exec app pytest
    Read operations (`GET`) are left open for unhindered internal consumption, while all state-mutating operations (`POST`, `PATCH`, `DELETE`) require a valid Bearer JWT.
 2. **PostgreSQL over NoSQL:**
    The schema-less `metadata` field uses `JSONB` for flexible storage, while the core fields maintain relational integrity and support foreign-key constraints on the `asset_relationships` table.
-3. **Pydantic V2 Computed Fields:**
-   Fields like `is_expired` on certificates are computed at serialization time using `@computed_field`, so the API always returns current temporal state without background jobs.
+3. **Certificate Lifecycle Filtering:**
+   Assets of type `certificate` support server-side lifecycle queries via the `certificate_lifecycle` filter. Expiry dates are parsed directly from the `metadata.expires` JSONB field using a PostgreSQL CASE expression with a regex guard `(^\d{4}-\d{2}-\d{2}$)` to safely skip malformed dates, so no background job or pre-computed column is needed.
 4. **CI Validation:**
    A GitHub Actions workflow automatically runs the test suite on every push and pull request, so regressions are caught before merge.
 5. **Database Indexing:**
@@ -213,3 +219,17 @@ If I were extending this further, the next additions would be:
 - **CI pipeline**: GitHub Actions running lint (ruff) + type check (mypy)
 - **LangChain feature**: natural-language asset query translating plain English to structured filters
 ---
+
+## 🗂️ Project Structure
+
+```
+app/
+├── core/           # Config, database session, security, constants, rate limiter
+├── models/         # SQLAlchemy ORM models (Asset, AssetRelationship)
+├── routers/        # FastAPI route handlers (assets, auth)
+├── schemas/        # Pydantic request/response schemas
+├── services/       # Business logic (asset_service, bulk_import_service)
+└── main.py         # App factory, middleware, router registration
+alembic/            # Database migrations
+tests/              # Async test suite (pytest + httpx)
+```
